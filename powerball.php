@@ -5,16 +5,21 @@ class PowerBall
 
 	public $drawings = 0;
 	public $results = array(
-		"win lotto"=>0,
+		"win 5+P"=>0,
 		"win 5"=>0,
 		"win 4+P"=>0,
 		"win 4"=>0,
 		"win 3+P"=>0,
+		"win 3"=>0,
 		"win 2+P"=>0,
+		"win 2"=>0,
 		"win 1+P"=>0,
-		"win P"=>0,
+		"win 0+P"=>0,
+		"win 1"=>0,
+		"win 0"=>0,
 	);
 	public $ticket = array();
+	public $tickets = array();
 	public $white_balls = array();
 	public $power_balls = array();
 	public $current_numbers = array('white_balls'=>array(),'power_ball'=>array());
@@ -32,47 +37,40 @@ class PowerBall
 	public function result()
 	{
 		$this->drawings++;
-		$r = array_intersect($this->ticket['white_balls'],$this->current_numbers['white_balls']);
+		foreach($this->tickets as $ticket)
+		{
+			$r = array_intersect($ticket['white_balls'],$this->current_numbers['white_balls']);
+			
+			$whiteballs = count($r);
+			
+			$powerball = $ticket['power_ball'] == $this->current_numbers['power_ball'];
+			
+			$key = "win {$whiteballs}".($powerball?'+P':'');
+			$this->results[$key]++;
+		}
+		if($this->results["win 5+P"] > 0)
+		{
+			echo "Drawings: {$this->drawings}".PHP_EOL;
+			echo "Cost: ";
+			echo ($this->drawings*$this->ticketcost*$this->numberTickets);
+			echo PHP_EOL;
+			$this->print_results();
+			die("Won Lotto");
+		}
 		
-		$whiteballs = count($r);
-		
-		$powerball = $this->ticket['power_ball'] == $this->current_numbers['power_ball'];
-		if($whiteballs == 5 && $powerball)
+		/*if($this->results["win 5"] > 0)
 		{
-			$this->results["win lotto"]++;
-		}
-		elseif($whiteballs == 5)
-		{
-			$this->results["win 5"]++;
-		}
-		elseif($whiteballs == 4 && $powerball)
-		{
-			$this->results["win 4+P"]++;
-		}
-		elseif($whiteballs == 4 )
-		{
-			$this->results["win 4"]++;
-		}
-		elseif($whiteballs == 3 && $powerball)
-		{
-			$this->results["win 3+P"]++;
-		}
-		elseif($whiteballs == 2 && $powerball)
-		{
-			$this->results["win 2+P"]++;
-		}
-		elseif($whiteballs == 1 && $powerball)
-		{
-			$this->results["win 1+P"]++;
-		}
-		elseif($powerball)
-		{
-			$this->results["win P"]++;
-		}
+			echo "Drawings: {$this->drawings}".PHP_EOL;
+			echo "Cost: ";
+			echo ($this->drawings*$this->ticketcost*$this->numberTickets);
+			echo PHP_EOL;
+			$this->print_results();
+			die("Won 2Million");
+		}*/
 	}
 	
-	public function draw_numbers($number=1,$numbers)
-	{		
+	public function draw_numbers($number,$numbers)
+	{	srand();	
 		$k = array_rand($numbers,$number);
 		
 		if(is_array($k))
@@ -88,8 +86,16 @@ class PowerBall
 		}
 		return $k;
 	}
+	
+	public function draw_numbers1($number,$numbers)
+	{		
+		shuffle($numbers);
+		$elements = array_slice($numbers, 0, $number);
+		return $number == 1?$elements[0]:$elements;
+		
+	}
 
-	public function set_white_balls($max=59)
+	public function set_white_balls($max=69)
 	{
 		$this->white_balls = range(1,$max);
 	}
@@ -108,18 +114,48 @@ class PowerBall
 	{
 		$this->ticket = array("white_balls"=>$white_balls,"power_ball"=>$power_ball);
 	}
+	
+	public function add_ticket($white_balls,$power_ball)
+	{
+		$this->tickets[] = array("white_balls"=>$white_balls,"power_ball"=>$power_ball);
+	}
+	
+	public function print_results()
+	{
+		foreach($this->results as $key => $value)
+		{
+			$perc = number_format(100 * ($value/$this->drawings),6);
+
+			echo "{$key}\t{$value}\t{$perc}".PHP_EOL;
+		}
+	}
+	
+	public function set_vars($numberTickets, $drawings, $ticketcost)
+	{
+		$this->numberTickets = $numberTickets;
+		$this->ticketcost = $ticketcost;
+		
+		//select n tickets
+		for($i=0;$i<$numberTickets;$i++)
+		{
+			$this->add_ticket($this->draw_numbers(5,range(1,69)),$this->draw_numbers(1,range(1,35)));
+		}
+
+		for($i=1;$i<$drawings+1;$i++)
+		{
+			$this->draw();//exit;
+			if($i%100 == 0)
+			{
+				//$curr = microtime(true) - $time;
+				//echo $i . "\t" . $curr .  PHP_EOL;
+			}
+		}
+	}
 
 }
-
+//@todo add the payout shedule and return the exported
 $pb = new PowerBall();
+
+$pb->set_vars(500,2000,2);exit;
+
 $time = microtime(true);
-$pb->set_ticket(array(23,44,55,56,68),4);
-
-for($i=0;$i<500000;$i++)
-{
-	$pb->draw();//exit;
-}
-
-print_r($pb->results);
-echo PHP_EOL;
-echo microtime(true) - $time;
