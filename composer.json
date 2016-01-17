@@ -1,0 +1,11 @@
+{
+    "name": "pmb/powerball",
+    "description": "Simulates powerball plays",
+    "authors": [
+        {
+            "name": "Paul Bliss",
+            "email": "pmathbliss@gmail.com"
+        }
+    ],
+    "require": {}
+}
