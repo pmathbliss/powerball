@@ -18,6 +18,26 @@ class PowerBall
 		"win 1"=>0,
 		"win 0"=>0,
 	);
+	public $payout = array(
+		"win 5+P"=>0,
+		"win 5"=>1000000,
+		"win 4+P"=>50000,
+		"win 4"=>100,
+		"win 3+P"=>100,
+		"win 3"=>7,
+		"win 2+P"=>7,
+		"win 2"=>0,
+		"win 1+P"=>4,
+		"win 0+P"=>4,
+		"win 1"=>0,
+		"win 0"=>0,
+	);
+	//net costs
+	public $costs = array();
+	//net winnings
+	public $winnings = array();
+	//net nets
+	public $nets = array();
 	public $ticket = array();
 	public $tickets = array();
 	public $white_balls = array();
@@ -30,8 +50,27 @@ class PowerBall
 		$this->set_power_balls();
 		$this->current_numbers['white_balls'] = $this->draw_numbers(5,$this->white_balls);
 		$this->current_numbers['power_ball'] = $this->draw_numbers(1,$this->power_balls);
+		$costs = $this->calculate_cost();
+		$winnings = $this->calculate_winnings();
+		$this->costs[] = $costs;
+		$this->winnings[] = $winnings;
+		$this->nets[] = $winnings - $costs;
 		//$this->print_numbers();
 		$this->result();
+		$this->test_won_lotto();
+	}
+	
+	public function test_won_lotto()
+	{
+		if($this->results["win 5+P"] > 0)
+		{			
+			$this->print_drawings();
+			$this->print_results();
+			$this->print_cost();
+			$this->print_winnings();
+			$this->print_nets();
+			die("Won Lotto");
+		}		
 	}
 	
 	public function result()
@@ -48,25 +87,39 @@ class PowerBall
 			$key = "win {$whiteballs}".($powerball?'+P':'');
 			$this->results[$key]++;
 		}
-		if($this->results["win 5+P"] > 0)
+	}
+	
+	public function print_drawings()
+	{
+		echo "Drawings:\t{$this->drawings}".PHP_EOL;	
+	}
+	
+	public function print_nets($divisor = 10)
+	{		
+		echo "Nets:" . PHP_EOL;
+		
+		for($i=1;$i<$divisor+1;$i++)
 		{
-			echo "Drawings: {$this->drawings}".PHP_EOL;
-			echo "Cost: ";
-			echo ($this->drawings*$this->ticketcost*$this->numberTickets);
-			echo PHP_EOL;
-			$this->print_results();
-			die("Won Lotto");
+			$q = floor($this->drawings * ($i/$divisor));
+			echo "Q{$i}[{$q}]:\t" . $this->nets[$q-1].PHP_EOL;
 		}
 		
-		/*if($this->results["win 5"] > 0)
+		for($i=1;$i<$this->drawings/104;$i++)
 		{
-			echo "Drawings: {$this->drawings}".PHP_EOL;
-			echo "Cost: ";
-			echo ($this->drawings*$this->ticketcost*$this->numberTickets);
-			echo PHP_EOL;
-			$this->print_results();
-			die("Won 2Million");
-		}*/
+			$q = $i*104;
+			echo "Year{$i}[{$q}]:\t" . $this->nets[$q-1].PHP_EOL;
+		}
+	}
+	
+	public function calculate_cost()
+	{
+		return ($this->drawings*$this->ticketcost*$this->numberTickets);	
+	}
+	public function print_cost()
+	{
+		echo "Cost:\t\t";
+		echo $this->calculate_cost();
+		echo PHP_EOL;		
 	}
 	
 	public function draw_numbers($number,$numbers)
@@ -100,7 +153,7 @@ class PowerBall
 		$this->white_balls = range(1,$max);
 	}
 	
-	public function set_power_balls($max=35)
+	public function set_power_balls($max=26)
 	{
 		$this->power_balls = range(1,$max);
 	}
@@ -124,7 +177,7 @@ class PowerBall
 	{
 		foreach($this->results as $key => $value)
 		{
-			$perc = number_format(100 * ($value/$this->drawings),6);
+			$perc = number_format(100 * ($value/($this->drawings*$this->numberTickets)),6);
 
 			echo "{$key}\t{$value}\t{$perc}".PHP_EOL;
 		}
@@ -144,18 +197,33 @@ class PowerBall
 		for($i=1;$i<$drawings+1;$i++)
 		{
 			$this->draw();//exit;
-			if($i%100 == 0)
-			{
-				//$curr = microtime(true) - $time;
-				//echo $i . "\t" . $curr .  PHP_EOL;
-			}
 		}
+	}
+	
+	public function calculate_winnings()
+	{
+		$winnings = 0;
+		foreach($this->results as $type => $count)
+		{
+			$winnings += $this->payout[$type] * $count;
+		}
+		return $winnings;
+	}
+	
+	public function print_winnings()
+	{
+		echo "Winnings:\t{$this->calculate_winnings()}".PHP_EOL;	
 	}
 
 }
 //@todo add the payout shedule and return the exported
 $pb = new PowerBall();
 
-$pb->set_vars(500,2000,2);exit;
+$pb->set_vars(20,104*50,2);
+$pb->print_drawings();
+$pb->print_cost();
+$pb->print_winnings();
+$pb->print_nets();
+echo "LOST";
 
-$time = microtime(true);
+
